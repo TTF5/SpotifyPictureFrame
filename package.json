@@ -1,0 +1,38 @@
+{
+  "name": "web-start-bundle",
+  "version": "1.0.0",
+  "description": "A start bundle for web app development",
+  "main": "index.js",
+  "author": "Jonathan K. <koenig-jonathan@web.de>",
+  "license": "MIT",
+  "scripts": {
+    "build": "webpack --config webpack.config.js --colors --progress",
+    "watch": "webpack --config webpack.config.js --colors --progress --watch",
+    "dev-server": "webpack-dev-server --color --config webpack.config.js"
+  },
+  "dependencies": {
+    "flux": "^3.1.3",
+    "immutable": "^3.8.1",
+    "react": "^15.6.1",
+    "react-dom": "^15.6.1",
+    "webpack": "^3.5.2",
+    "webpack-dev-server": "^2.7.1"
+  },
+  "devDependencies": {
+    "babel-core": "^6.25.0",
+    "babel-loader": "^7.1.1",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "babel-plugin-transform-decorators-legacy": "^1.3.4",
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-polyfill": "^6.23.0",
+    "babel-preset-latest": "^6.24.1",
+    "babel-preset-react": "^6.24.1",
+    "babel-runtime": "^6.25.0",
+    "css-loader": "^0.28.4",
+    "file-loader": "^0.11.2",
+    "node-sass": "^4.5.3",
+    "sass-loader": "^6.0.6",
+    "style-loader": "^0.18.2",
+    "url-loader": "^0.5.9"
+  }
+}
