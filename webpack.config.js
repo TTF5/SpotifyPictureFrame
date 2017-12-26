@@ -5,7 +5,7 @@ module.exports = {
     'babel-polyfill',
     './src/entry.js'
   ],
-  //devtool: 'inline-source-map',
+  devtool: 'inline-source-map',
   devServer: {
     contentBase: path.join(__dirname, 'public'),
     compress: true,

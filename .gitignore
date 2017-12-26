@@ -30,4 +30,4 @@ node_modules/
 .yarn-integrity
 
 # Public build
-public/build
+public/build/*
