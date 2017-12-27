@@ -15,13 +15,39 @@ var spotifyApi = new SpotifyWebApi({
     redirectUri: 'http://localhost:8080'
 });
 
+function handleSpotifyError(err) {
+    if(err.name === "WebapiError" &&
+        err.message === "Unauthorized" &&
+        err.statusCode === 401) {
+        
+        console.log("Error: No longer authorized!");
+        LoggedIn = false;
+        updateLoginState();
+    }
+}
+
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 
-app.use('/app', express.static('public'));
+app.ws('/live', function(ws, req) {});
 
-var router = express.Router();
-app.use('/api', router);
+expressWs.getWss().on('connection', function(ws) {
+    console.log('New client connected!');
+    var json = JSON.stringify({
+        loggedIn: LoggedIn,
+    });
+    ws.send(json);
+})
+
+var updateLoginState = function() {
+    var json = JSON.stringify({
+        loggedIn: LoggedIn,
+    });
+
+    expressWs.getWss().clients.forEach(function each(client) {
+        client.send(json);
+    });
+}
 
 app.get('/', function(req, res) {
     if(req.query.code != undefined && req.query.state == "login") {
@@ -35,22 +61,59 @@ app.get('/', function(req, res) {
             // Set the access token on the API object to use it in later calls
             spotifyApi.setAccessToken(data.body['access_token']);
             spotifyApi.setRefreshToken(data.body['refresh_token']);
+
             LoggedIn = true;
+            updateLoginState();
+
+            res.redirect('/login');
         }, function(err) {
+            handleSpotifyError(err);
             console.log(err);
         });
+    } else {
+        res.redirect('/app');
     }
-    res.redirect('/app');
 });
+
+app.get('/login', function(req, res) {
+    if(!LoggedIn)
+        res.send('<html><head><title>SpotifyPictureFrame - Login</title></head><body><center><a href="'
+                    + spotifyApi.createAuthorizeURL(scopes, 'login') +
+                    '">Login</a></center></body></html>');
+    else
+        res.send('<html><head><title>SpotifyPictureFrame - Login</title></head><body><center><a href="/logout">Logout</a></center></body></html>');
+});
+
+app.get('/logout', function(req, res) {
+    LoggedIn = false;
+    
+    spotifyApi.resetAccessToken();
+    spotifyApi.resetRefreshToken();
+    // spotifyApi.resetCode(); Not defined?!
+
+    // Needed for authentication
+    // spotifyApi.resetRedirectURI();
+    // spotifyApi.resetClientId();
+    // spotifyApi.resetClientSecret();
+
+    updateLoginState();
+
+    res.redirect('/login');
+});
+
+app.use('/app', express.static('public'));
+
+var router = express.Router();
+app.use('/api', router);
 
 router.route("/").get(function(req, res) {
     res.send("API entry");
 });
 
-router.route('/authorizeUrl')
-    .get(function(req, res) {
-        res.json({ url: spotifyApi.createAuthorizeURL(scopes, 'login') });
-    });
+// router.route('/authorizeUrl')
+//     .get(function(req, res) {
+//         res.json({ url:  });
+//     });
 
 router.route('/loggedIn')
     .get(function(req, res) {
@@ -65,6 +128,7 @@ router.route('/user')
             let avatar = data.body.images[0].url;
             res.json({id: id, name: name, avatar: avatar});
         }, function(err) {
+            handleSpotifyError(err);
             res.json({error: err, code: 002});
         });
     });
@@ -73,6 +137,7 @@ router.route('/playback').get(function(req, res) {
     spotifyApi.getMyCurrentPlayingTrack().then(function(data) {
         res.json(data);
     }, function(err) {
+        handleSpotifyError(err);
         res.json({error: err, code:003});
     });
 });

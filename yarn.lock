@@ -3708,6 +3708,10 @@ react-dom@^15.6.1:
     object-assign "^4.1.0"
     prop-types "^15.5.10"
 
+react-websocket@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/react-websocket/-/react-websocket-2.0.0.tgz#efc72f3e841ee1befe78efe634c9982fae16348a"
+
 react@^15.6.1:
   version "15.6.1"
   resolved "https://registry.yarnpkg.com/react/-/react-15.6.1.tgz#baa8434ec6780bde997cdc380b79cd33b96393df"
