@@ -2,13 +2,22 @@ var express = require('express');
 var app = express();
 var expressWs = require('express-ws')(app);
 var bodyParser = require('body-parser');
-
-var scopes = ['user-read-private', 'user-read-email', 'user-read-playback-state'];
-
 var SpotifyWebApi = require('spotify-web-api-node');
 
 var LoggedIn = false;
+var TokenRefreshTimeout = null;
 
+// Setup Express
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.json());
+var apiRouter = express.Router();
+
+app.use('/api', apiRouter);
+app.ws('/live', function(ws, req) {});
+app.use('/app', express.static('public'));
+
+// Setup SpotifyApi
+var scopes = ['user-read-private', 'user-read-email', 'user-read-playback-state'];
 var spotifyApi = new SpotifyWebApi({
     clientId: '043a4af36efd49f58005e8135c722c93',
     clientSecret: '9658001a933340bb843f275262bf732a',
@@ -23,13 +32,10 @@ function handleSpotifyError(err) {
         console.log("Error: No longer authorized!");
         LoggedIn = false;
         updateLoginState();
+    } else {
+        console.log(err);
     }
 }
-
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(bodyParser.json());
-
-app.ws('/live', function(ws, req) {});
 
 expressWs.getWss().on('connection', function(ws) {
     console.log('New client connected!');
@@ -40,7 +46,7 @@ expressWs.getWss().on('connection', function(ws) {
 })
 
 var updateLoginState = function() {
-    var json = JSON.stringify({
+    let json = JSON.stringify({
         loggedIn: LoggedIn,
     });
 
@@ -49,14 +55,38 @@ var updateLoginState = function() {
     });
 }
 
-app.get('/', function(req, res) {
-    if(req.query.code != undefined && req.query.state == "login") {
-        let code = req.query.code;
-        spotifyApi.authorizationCodeGrant(code)
+var updatePlaybackState = function() {
+    if(LoggedIn) {
+        spotifyApi.getMyCurrentPlayingTrack().then(function(result) {
+            let data = result.body;
+
+            let info = {
+              isPlaying: data.is_playing,
+              progress: data.progress_ms,
+              duration: data.item.duration_ms,
+              name: data.item.name,
+              artist: data.item.artists[0].name,
+              image: data.item.album.images[0].url,
+            }
+
+            let json = JSON.stringify({
+                playbackInfo: info,
+            });
+
+            expressWs.getWss().clients.forEach(function each(client) {
+                client.send(json);
+            });
+      
+          }, function(err) {
+              handleSpotifyError(err);
+          });
+    }    
+}
+
+var doLogin = function(code, res) {
+    spotifyApi.authorizationCodeGrant(code)
         .then(function(data) {
             console.log('The token expires in ' + data.body['expires_in']);
-            console.log('The access token is ' + data.body['access_token']);
-            console.log('The refresh token is ' + data.body['refresh_token']);
 
             // Set the access token on the API object to use it in later calls
             spotifyApi.setAccessToken(data.body['access_token']);
@@ -65,11 +95,33 @@ app.get('/', function(req, res) {
             LoggedIn = true;
             updateLoginState();
 
+            TokenRefreshTimeout = setTimeout(refreshToken, (data.body['expires_in']-3)*1000);
+
             res.redirect('/login');
         }, function(err) {
             handleSpotifyError(err);
             console.log(err);
         });
+}
+
+var refreshToken = function() {
+    spotifyApi.refreshAccessToken()
+    .then(function(data) {
+        console.log('The access token has been refreshed!');
+        console.log('The token expires in ' + data.body['expires_in']);
+
+        // Save the access token so that it's used in future calls
+        spotifyApi.setAccessToken(data.body['access_token']);
+        
+        TokenRefreshTimeout = setTimeout(refreshToken, data.body['expires_in']);
+    }, function(err) {
+        console.log('Could not refresh access token', err);
+    });
+}
+
+app.get('/', function(req, res) {
+    if(req.query.code != undefined && req.query.state == "login") {
+        doLogin(req.query.code, res);    
     } else {
         res.redirect('/app');
     }
@@ -96,31 +148,23 @@ app.get('/logout', function(req, res) {
     // spotifyApi.resetClientId();
     // spotifyApi.resetClientSecret();
 
+    clearTimeout(TokenRefreshTimeout);
+
     updateLoginState();
 
     res.redirect('/login');
 });
 
-app.use('/app', express.static('public'));
-
-var router = express.Router();
-app.use('/api', router);
-
-router.route("/").get(function(req, res) {
+apiRouter.route("/").get(function(req, res) {
     res.send("API entry");
 });
 
-// router.route('/authorizeUrl')
-//     .get(function(req, res) {
-//         res.json({ url:  });
-//     });
-
-router.route('/loggedIn')
+apiRouter.route('/loggedIn')
     .get(function(req, res) {
         res.json({ status: LoggedIn});
     });
 
-router.route('/user')
+apiRouter.route('/user')
     .get(function (req, res) {
         spotifyApi.getMe().then(function(data) {
             let name = data.body.display_name;
@@ -133,13 +177,6 @@ router.route('/user')
         });
     });
 
-router.route('/playback').get(function(req, res) {
-    spotifyApi.getMyCurrentPlayingTrack().then(function(data) {
-        res.json(data);
-    }, function(err) {
-        handleSpotifyError(err);
-        res.json({error: err, code:003});
-    });
-});
+setInterval(updatePlaybackState, 1000);
 
 app.listen(8080);

@@ -52,7 +52,7 @@ module.exports = {
   },
   output: {
     path: path.resolve(__dirname, 'public', 'build'),
-    publicPath: 'build',
+    publicPath: 'build/',
     filename: 'app.js',
   },
 };

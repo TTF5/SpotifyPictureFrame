@@ -45,13 +45,20 @@ class PlaybackInfo extends React.Component {
   }
 
   render() {
-    let imageClass = this.props.info.isPlaying ? "playing" : "paused";
+    let imageClass = ["coverart"];
+    if(!this.props.info.isPlaying)
+      imageClass.push("paused");
+
     let trackTitle = this.props.info.name + " - " + this.props.info.artist;
 
     return(
-      <div id="content-justify">
-        <div id="playback-info">
-          <div id="coverart"><img src={this.props.info.image} /></div>
+      <div className="content-justify">
+        <div className="playback-info">
+          <div className={imageClass.join(' ')}>
+            <div className="overlay">
+              <img src={this.props.info.image} />
+            </div>
+          </div>
           <ProgressBar progress={this.props.info.progress} duration={this.props.info.duration} />
           <p>{trackTitle}</p>
         </div>
@@ -63,11 +70,11 @@ class PlaybackInfo extends React.Component {
 class ProgressBar extends React.Component {
   render() {
 
-    let width = this.props.progress / this.props.duration * 100;
+    let width = this.props.progress / this.props.duration * 100 + "%";
 
     return(
-      <div id="bar">
-        <div id="progress" style={{width: width}} />
+      <div className="bar">
+        <div className="progress" style={{width: width}} />
       </div>
     );
   }
@@ -81,7 +88,7 @@ class UserInfo extends React.Component {
 
   render() {
     return (
-      <div id="user-info">
+      <div className="user-info">
           <div className="inner">
             <p>{this.props.info.name}</p>
           </div>
@@ -114,8 +121,6 @@ class WSHost extends React.Component {
       }
     }
 
-    this.tick = this.tick.bind(this);
-    this.fetchPlayingTrack = this.fetchPlayingTrack.bind(this);
     this.fetchUserInfo = this.fetchUserInfo.bind(this);
   }
 
@@ -127,19 +132,9 @@ class WSHost extends React.Component {
         this.fetchUserInfo();
       }
     }
-  }
+    if(result.playbackInfo != undefined) {;
 
-  componentDidMount() {
-    this.interval = setInterval(this.tick, 250);
-  }
-
-  componentWillUnmount() {
-    clearInterval(this.interval);
-  }
-
-  tick() {
-    if(this.state.loggedIn === true) {
-      this.fetchPlayingTrack();
+      this.setState({ playbackinfo: result.playbackInfo});
     }
   }
 
@@ -147,30 +142,8 @@ class WSHost extends React.Component {
     fetch('http://localhost:8080/api/user')
      .then(result => result.json())
      .then((data) => {
-        //console.log(data);
         this.setState({userinfo: {name: data.name, avatar: data.avatar}});
      });
-  }
-
-  fetchPlayingTrack() {
-    fetch('http://localhost:8080/api/playback')
-      .then(data => data.json())
-      .then((result) => {
-        let data = result.body;
-
-        console.log(data);
-
-        let info = {
-          isPlaying: data.is_playing,
-          progress: data.progress_ms,
-          duration: data.item.duration_ms,
-          name: data.item.name,
-          artist: data.item.artists[0].name,
-          image: data.item.album.images[0].url,
-        };
-
-        this.setState({ playbackinfo: info});
-      });
   }
 
   render() {
