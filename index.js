@@ -1,3 +1,4 @@
+const config = require('./config.js');
 var express = require('express');
 var app = express();
 var expressWs = require('express-ws')(app);
@@ -6,8 +7,6 @@ var SpotifyWebApi = require('spotify-web-api-node');
 
 var LoggedIn = false;
 var TokenRefreshTimeout = null;
-
-var infoRefreshTime = 500;
 
 console.log("--== SpotifyPictureFrame ==--");
 
@@ -22,11 +21,7 @@ app.use('/app', express.static('public'));
 
 // Setup SpotifyApi
 var scopes = ['user-read-private', 'user-read-email', 'user-read-playback-state'];
-var spotifyApi = new SpotifyWebApi({
-    clientId: '043a4af36efd49f58005e8135c722c93',
-    clientSecret: '9658001a933340bb843f275262bf732a',
-    redirectUri: 'http://localhost:8080'
-});
+var spotifyApi = new SpotifyWebApi(config.spotify);
 
 function handleSpotifyError(err) {
     if(err.name === "WebapiError" &&
@@ -184,9 +179,9 @@ apiRouter.route('/user')
         });
     });
 
-setInterval(updatePlaybackState, infoRefreshTime);
+setInterval(updatePlaybackState, config.refreshTime);
 
-app.listen(8080, function() {
-    console.log("The server is running on http://localhost:8080");
+app.listen(config.port, function() {
+    console.log("The server is running on http://localhost:"+config.port);
 });
 

@@ -31,3 +31,4 @@ node_modules/
 
 # Public build
 public/build/*
+config.js
