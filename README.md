@@ -13,3 +13,9 @@ module.exports = {
     port: 8080,
 }
 ```
+
+1. Start the Server: ```yarn run app```
+2. Login /w Spotify ```http://localhost:<port>/login```
+3. Load the app website ```http://localhost:<port>/app```
+
+Don't forget to set the redirectUri in your SpotifyApplication!
