@@ -3,22 +3,52 @@ import React from 'react';
 import Websocket from 'react-websocket';
 
 class App extends React.Component {
+
   constructor(props) {
     super(props);
 
-    this.state = {};
+    this.state = { 
+      pausedStart: -1,
+      pausedElapsed: 0,
+      hidden: true,
+    };
+
+    this.tick = this.tick.bind(this);
+    this.componentDidMount = this.componentDidMount.bind(this);
+    this.componentWillUnmount = this.componentWillUnmount.bind(this);
   }
 
   componentDidMount() {
-    // fetch('http://localhost:8080/api/loggedIn')
-    // .then(result => result.json())
-    // .then(data => this.setState({loggedIn: data.status}));
+      this.timer = setInterval(this.tick, 50);
+  }
+
+  componentWillUnmount(){
+    clearInterval(this.timer);
+  }
+
+  tick() {
+    if(this.props.playbackInfo.isPlaying == false && this.state.pausedStart == -1) {
+      this.setState({pausedStart: Date.now()});
+    } else if (this.props.playbackInfo.isPlaying == true) {
+      this.setState({pausedStart: -1, hidden: false});
+    }
+
+    if(this.state.pausedStart == -1) {
+      this.setState({pausedElapsed: 0});
+    } else {
+      if(!this.state.hidden)
+        this.setState({pausedElapsed: new Date() - new Date(this.state.pausedStart)});
+    }
+
+    if(this.state.pausedElapsed > 60000) {
+      this.setState({hidden:true});
+    }
   }
 
   render() {
     if(this.props.isLoggedIn) {
       return(
-        <div>
+        <div className={this.state.hidden ? "hidden" : ""}>
           <UserInfo info={this.props.userinfo} />
           <PlaybackInfo info={this.props.playbackInfo} />
         </div>
@@ -30,19 +60,6 @@ class App extends React.Component {
 }
 
 class PlaybackInfo extends React.Component {
-  constructor(props) {
-    super(props);
-
-    
-    // playbackinfo: {
-    //   isPlaying: false,
-    //   progress: 0,
-    //   duration: 0,
-    //   name: "",
-    //   artist: "",
-    //   image: "",
-    // }
-  }
 
   render() {
     let imageClass = ["coverart"];
@@ -82,10 +99,6 @@ class ProgressBar extends React.Component {
 
 class UserInfo extends React.Component {
 
-  constructor(props) {
-    super(props);
-  }
-
   render() {
     return (
       <div className="user-info">
@@ -105,7 +118,8 @@ class WSHost extends React.Component {
   constructor(props) {
     super(props);
 
-    this.state = {
+    this.state = 
+    {
       loggedIn: false,
       userinfo: {
         name: "",
@@ -119,7 +133,7 @@ class WSHost extends React.Component {
         artist: "",
         image: "",
       }
-    }
+    };
 
     this.fetchUserInfo = this.fetchUserInfo.bind(this);
   }

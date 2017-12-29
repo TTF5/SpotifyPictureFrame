@@ -7,6 +7,8 @@ var SpotifyWebApi = require('spotify-web-api-node');
 var LoggedIn = false;
 var TokenRefreshTimeout = null;
 
+var infoRefreshTime = 500;
+
 // Setup Express
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
@@ -177,6 +179,6 @@ apiRouter.route('/user')
         });
     });
 
-setInterval(updatePlaybackState, 1000);
+setInterval(updatePlaybackState, infoRefreshTime);
 
 app.listen(8080);
