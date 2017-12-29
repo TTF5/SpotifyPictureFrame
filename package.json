@@ -6,6 +6,7 @@
   "author": "Jonathan K. <koenig-jonathan@web.de>",
   "license": "MIT",
   "scripts": {
+    "app": "node index.js",
     "build": "webpack --config webpack.config.js --colors --progress",
     "watch": "webpack --config webpack.config.js --colors --progress --watch",
     "dev-server": "webpack-dev-server --color --config webpack.config.js"

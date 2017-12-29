@@ -9,6 +9,8 @@ var TokenRefreshTimeout = null;
 
 var infoRefreshTime = 500;
 
+console.log("--== SpotifyPictureFrame ==--");
+
 // Setup Express
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
@@ -39,6 +41,7 @@ function handleSpotifyError(err) {
     }
 }
 
+// Websockets
 expressWs.getWss().on('connection', function(ws) {
     console.log('New client connected!');
     var json = JSON.stringify({
@@ -85,6 +88,8 @@ var updatePlaybackState = function() {
     }    
 }
 
+
+// Authentication
 var doLogin = function(code, res) {
     spotifyApi.authorizationCodeGrant(code)
         .then(function(data) {
@@ -181,4 +186,7 @@ apiRouter.route('/user')
 
 setInterval(updatePlaybackState, infoRefreshTime);
 
-app.listen(8080);
+app.listen(8080, function() {
+    console.log("The server is running on http://localhost:8080");
+});
+
